@@ -1,0 +1,5 @@
+- hosts: all
+  gather_facts: no
+  tasks:
+  - name: Ensure Python is installed
+    raw: "apt update && apt install -y python"
