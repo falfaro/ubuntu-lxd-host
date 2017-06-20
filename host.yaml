@@ -44,6 +44,8 @@
   - name: Ensure logical volume for LXD is mounted at boot
     mount:
       fstype: btrfs
+      # As per http://lxd.readthedocs.io/en/lxd-2.7/storage-backends/ when
+      # using Btrfs for nested containers.
       opts: user_subvol_rm_allowed
       path: /var/lib/lxd
       src: /dev/vg0/lxd
