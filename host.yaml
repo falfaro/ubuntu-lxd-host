@@ -84,3 +84,18 @@
           #cloud-config
           apt:
             proxy: http://cache:3142
+  - name: Create a container
+    lxd_container:
+      name: openstack
+      state: started
+      source:
+        type: image
+        mode: pull
+        protocol: simplestreams
+        server: "https://cloud-images.ubuntu.com/releases"
+        alias: "17.04"
+      profiles:
+      - cache
+      - default
+      wait_for_ipv4_addresses: true
+      timeout: 600
