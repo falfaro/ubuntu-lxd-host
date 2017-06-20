@@ -73,23 +73,14 @@
   - name: Ensure default LXD profile attaches to LXD bridge
     shell: "lxc network attach-profile lxdbr0 default eth0"
     ignore_errors: true
-  - name: Ensure default LXD profile uses apt-cacher cache
+  - name: Ensure cache LXD profile uses apt-cacher cache
     lxd_profile:
-      name: default
+      name: cache
       state: present
-      description: Default LXD profile
+      description: Use apt-cacher container
       config:
         boot.autostart: "true"
         user.user-data: |
           #cloud-config
           apt:
             proxy: http://cache:3142
-      devices:
-        eth0:
-          nictype: bridged
-          parent: lxdbr0
-          type: nic
-        root:
-          path: /
-          pool: default
-          type: disk
