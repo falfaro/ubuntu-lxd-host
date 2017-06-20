@@ -84,6 +84,19 @@
           #cloud-config
           apt:
             proxy: http://cache:3142
+  - name: Ensure nested LXD profile exists
+    lxd_profile:
+      name: nested
+      state: present
+      description: LXD container for nesting Docker/LXD
+      config:
+        security.privileged: "true"
+        security.nesting: "true"
+        linux.kernel_modules: "ip_tables,ip6_tables,netlink_diag,nf_nat,overlay,openvswitch,nbd"
+        raw.lxc: |
+          lxc.aa_profile=unconfined
+          lxc.mount.auto=sys:rw
+          lxc.cap.drop=
   - name: Ensure the apt-cacher container exists
     lxd_container:
       name: cache
@@ -111,5 +124,6 @@
       profiles:
       - cache
       - default
+      - nested
       wait_for_ipv4_addresses: true
       timeout: 600
