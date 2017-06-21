@@ -26,7 +26,7 @@
     git_config:
       name: user.name
       repo: /etc
-      scope: local
+      scope: global
       value: 'root'
   - name: Ensure etckeeper is installed
     package:
