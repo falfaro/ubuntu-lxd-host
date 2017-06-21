@@ -1,0 +1,26 @@
+- hosts: cache
+  gather_facts: no
+  tasks:
+  - name: Ensure Python is installed
+    raw: "apt update && apt install -y python"
+
+- hosts: cache
+  tasks:
+  - name: Install apache2
+    package:
+      name: apache2
+  - name: Install apt-cacher
+    package:
+      name: apt-cacher
+  - name: Configure apt-cacher
+    copy:
+      src: apt-cacher.conf
+      dest: /etc/apt-cacher/apt-cacher.conf
+      owner: root
+      group: root
+      mode: 0644
+  - name: Restart apt-cacher
+    service:
+      name: apt-cacher
+      state: restarted
+      enabled: yes
