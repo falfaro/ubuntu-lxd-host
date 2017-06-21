@@ -53,6 +53,9 @@
   - name: Ensure logical volume for LXD is mounted in /var/lib/lxd
     mount:
       fstype: btrfs
+      # As per http://lxd.readthedocs.io/en/lxd-2.7/storage-backends/ when
+      # using Btrfs for nested containers.
+      opts: user_subvol_rm_allowed
       src: /dev/vg0/lxd
       path: /var/lib/lxd
       state: mounted
