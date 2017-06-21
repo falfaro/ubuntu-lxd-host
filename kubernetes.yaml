@@ -1,0 +1,21 @@
+- hosts: openstack
+  gather_facts: no
+  tasks:
+  - name: Ensure Python is installed
+    raw: "apt update && apt install -y python"
+
+- hosts: openstack
+  tasks:
+  - name: Install snapd
+    package:
+      name: snapd
+  - name: Install squashfuse
+    package:
+      name: squashfuse
+  - name: Remove LXD
+    package:
+      name: "{{item}}"
+      state: absent
+    with_items:
+    - lxd
+    - lxd-client
