@@ -102,6 +102,11 @@
           lxc.aa_profile=unconfined
           lxc.mount.auto=sys:rw
           lxc.cap.drop=
+      devices:
+        aadisable:
+          path: /sys/module/apparmor/parameters/enabled
+          source: /dev/null
+          type: disk
   - name: Ensure the apt-cacher container exists
     lxd_container:
       name: cache
