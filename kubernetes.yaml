@@ -19,7 +19,6 @@
       - nested
       wait_for_ipv4_addresses: true
       timeout: 600
-      #  - wait_for: host="{{container_name}}" port=22 timeout=10 state=started
   - block:
     - name: Ensure Python is installed
       raw: "apt update && apt install -y python"
