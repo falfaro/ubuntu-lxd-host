@@ -15,6 +15,7 @@
         alias: "17.04"
       profiles:
       - cache
+      - docker
       - default
       - nested
       wait_for_ipv4_addresses: true
@@ -38,4 +39,6 @@
       package:
         name: squashfuse
         use: apt
+    - name: Ensure conjure-up is installed
+      shell: "snap install conjure-up --classic"
     delegate_to: "{{container_name}}"
