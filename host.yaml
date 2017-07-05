@@ -41,6 +41,7 @@
       fstype: btrfs
       dev: /dev/vg0/lxd
       resizefs: no
+    tags: btrfs
   - name: Ensure logical volume for LXD is mounted at boot
     mount:
       fstype: btrfs
@@ -50,6 +51,7 @@
       path: /var/lib/lxd
       src: /dev/vg0/lxd
       state: present
+    tags: btrfs
   - name: Ensure logical volume for LXD is mounted in /var/lib/lxd
     mount:
       fstype: btrfs
@@ -59,6 +61,7 @@
       src: /dev/vg0/lxd
       path: /var/lib/lxd
       state: mounted
+    tags: btrfs
   - name: Ensure LXD is installed
     package:
       name: "{{item}}"
