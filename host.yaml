@@ -89,6 +89,9 @@
           #cloud-config
           apt:
             proxy: http://cache:3142
+    tags:
+    - cache
+    - lxd_profiles
   - name: Ensure nested LXD profile exists
     lxd_profile:
       name: nested
@@ -107,6 +110,8 @@
           path: /sys/module/apparmor/parameters/enabled
           source: /dev/null
           type: disk
+    tags:
+    - lxd_profiles
   - name: Ensure the apt-cacher container exists
     lxd_container:
       name: cache
