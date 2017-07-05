@@ -31,10 +31,6 @@
       with_items:
       - lxd
       - lxd-client
-    - name: Install snapd
-      package:
-        name: snapd
-        use: apt
     - name: Install squashfuse
       package:
         name: squashfuse
