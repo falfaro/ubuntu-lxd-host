@@ -21,7 +21,7 @@
       wait_for_ipv4_addresses: true
       timeout: 600
   - block:
-    - name: Ensure Python is installed
+    - name: Ensure Python is available in the container
       raw: "apt update && apt install -y python"
     - name: Remove LXD
       package:
@@ -31,13 +31,13 @@
       with_items:
       - lxd
       - lxd-client
-    - name: Install squashfuse
+    - name: Install squashfuse in the container
       package:
         name: squashfuse
         use: apt
-    - name: Ensure conjure-up is installed
+    - name: Ensure conjure-up is available in the container
       shell: "snap install conjure-up --classic"
-    - name: Deploy Kubernetes
+    - name: Deploy Kubernetes inside the container
       shell: "conjure-up canonical-kubernetes localhost controller model"
       become: yes
       become_user: ubuntu
