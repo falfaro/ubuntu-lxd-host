@@ -37,4 +37,17 @@
         use: apt
     - name: Ensure conjure-up is installed
       shell: "snap install conjure-up --classic"
+    - name: Deploy Kubernetes
+      shell: "conjure-up canonical-kubernetes localhost controller model"
+      become: yes
+      become_user: ubuntu
+      tags: kube
+    - name: Symlink kubecfg
+      file:
+        src: ~ubuntu/.kube/config.model
+        dest: ~ubuntu/.kube/config
+        state: link
+        owner: ubuntu
+        group: ubuntu
+      tags: kube
     delegate_to: "{{container_name}}"
