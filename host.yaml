@@ -85,6 +85,7 @@
     lxd_profile:
       name: cache
       state: present
+      #url: unix:/var/snap/conjure-up/common/lxd/unix.socket
       description: Use apt-cacher container
       config:
         boot.autostart: "true"
@@ -99,16 +100,20 @@
     lxd_profile:
       name: nested
       state: present
+      #url: unix:/var/snap/conjure-up/common/lxd/unix.socket
       description: LXD container for nesting Docker/LXD
       config:
         security.privileged: "true"
         security.nesting: "true"
-        linux.kernel_modules: "ip_tables,ip6_tables,netlink_diag,nf_nat,overlay,openvswitch,nbd"
+        linux.kernel_modules: "ip_tables,ip6_tables,ebtables,netlink_diag,nf_nat,overlay,openvswitch,nbd"
         raw.lxc: |
           lxc.aa_profile=unconfined
           lxc.mount.auto=sys:rw
           lxc.cap.drop=
       devices:
+        mem:
+          path: /dev/mem
+          type: unix-char
         aadisable:
           path: /sys/module/apparmor/parameters/enabled
           source: /dev/null
