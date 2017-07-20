@@ -34,47 +34,18 @@
   - name: Ensure logical volume for LXD exists
     lvol:
       vg: vg0
-      lv: lxd
-      size: 300G
-  - name: Ensure btrfs filesystem in the logical volume for LXD exists
-    filesystem:
-      fstype: btrfs
-      dev: /dev/vg0/lxd
-      resizefs: no
-    tags: btrfs
-  - name: Ensure logical volume for LXD is mounted at boot
-    mount:
-      fstype: btrfs
-      # As per http://lxd.readthedocs.io/en/lxd-2.7/storage-backends/ when
-      # using Btrfs for nested containers.
-      opts: user_subvol_rm_allowed
-      path: /var/lib/lxd
-      src: /dev/vg0/lxd
-      state: present
-    tags: btrfs
-  - name: Ensure logical volume for LXD is mounted in /var/lib/lxd
-    mount:
-      fstype: btrfs
-      # As per http://lxd.readthedocs.io/en/lxd-2.7/storage-backends/ when
-      # using Btrfs for nested containers.
-      opts: user_subvol_rm_allowed
-      src: /dev/vg0/lxd
-      path: /var/lib/lxd
-      state: mounted
-    tags: btrfs
+      lv: zfs
+      size: 100%FREE
+      shrink: False
   - name: Ensure LXD is installed
     package:
       name: "{{item}}"
     with_items:
       - lxd
       - lxd-client
-  - name: Ensure LXD is running
-    service:
-      name: lxd
-      state: started
-      enabled: yes
+      - zfsutils-linux
   - name: Ensure LXD is initialized
-    shell: "lxd init --network-address=0.0.0.0 --network-port=8443 --storage-backend=dir --auto"
+    shell: "lxd init --network-address=0.0.0.0 --network-port=8443 --storage-backend=zfs --storage-create-device=/dev/vg0/zfs --auto"
   - name: Ensure LXD bridge exists
     shell: "lxc network create lxdbr0 ipv6.address=none ipv4.address=10.0.3.1/24 ipv4.nat=true"
     ignore_errors: true
@@ -85,7 +56,6 @@
     lxd_profile:
       name: cache
       state: present
-      #url: unix:/var/snap/conjure-up/common/lxd/unix.socket
       description: Use apt-cacher container
       config:
         boot.autostart: "true"
@@ -100,7 +70,6 @@
     lxd_profile:
       name: nested
       state: present
-      #url: unix:/var/snap/conjure-up/common/lxd/unix.socket
       description: LXD container for nesting Docker/LXD
       config:
         security.privileged: "true"
@@ -108,13 +77,17 @@
         linux.kernel_modules: "ip_tables,ip6_tables,ebtables,netlink_diag,nf_nat,overlay,openvswitch,nbd"
         raw.lxc: |
           lxc.aa_profile=unconfined
-          lxc.mount.auto=sys:rw
+          lxc.mount.auto=proc:rw sys:rw
           lxc.cap.drop=
       devices:
         mem:
           path: /dev/mem
           type: unix-char
         aadisable:
+          path: /sys/module/nf_conntrack/parameters/hashsize
+          source: /dev/null
+          type: disk
+        aadisable1:
           path: /sys/module/apparmor/parameters/enabled
           source: /dev/null
           type: disk
