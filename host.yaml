@@ -43,7 +43,12 @@
     with_items:
       - lxd
       - lxd-client
+      - juju
       - zfsutils-linux
+  - name: Add user to the LXD group
+    user:
+      name: falfaro
+      group: lxd
   - name: Ensure LXD is initialized
     shell: "lxd init --network-address=0.0.0.0 --network-port=8443 --storage-backend=zfs --storage-create-device=/dev/vg0/zfs --auto"
   - name: Ensure LXD bridge exists
