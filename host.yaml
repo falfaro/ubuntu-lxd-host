@@ -120,17 +120,3 @@
           type: disk
     tags:
     - lxd_profiles
-  - name: Ensure the apt-cacher container exists
-    lxd_container:
-      name: cache
-      state: started
-      source:
-        type: image
-        mode: pull
-        protocol: simplestreams
-        server: "https://cloud-images.ubuntu.com/releases"
-        alias: "17.04"
-      profiles:
-      - default
-      wait_for_ipv4_addresses: true
-      timeout: 600

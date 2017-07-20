@@ -1,26 +1,49 @@
-- hosts: cache
+- hosts: localhost
   gather_facts: no
+  vars:
+  - container_name: cache
   tasks:
-  - name: Ensure Python is installed
-    raw: "apt update && apt install -y python"
-
-- hosts: cache
-  tasks:
-  - name: Install apache2
-    package:
-      name: apache2
-  - name: Install apt-cacher
-    package:
-      name: apt-cacher
-  - name: Configure apt-cacher
-    copy:
-      src: apt-cacher.conf
-      dest: /etc/apt-cacher/apt-cacher.conf
-      owner: root
-      group: root
-      mode: 0644
-  - name: Restart apt-cacher
-    service:
-      name: apt-cacher
-      state: restarted
-      enabled: yes
+  - name: Ensure container exists
+    lxd_container:
+      name: "{{container_name}}"
+      state: started
+      url: unix:/var/snap/conjure-up/common/lxd/unix.socket
+      source:
+        type: image
+        mode: pull
+        protocol: simplestreams
+        server: "https://cloud-images.ubuntu.com/releases"
+        alias: "17.04"
+      profiles:
+      - nested
+      wait_for_ipv4_addresses: true
+      timeout: 600
+  - block:
+    - name: Ensure Python is available in the container
+      raw: "apt update && apt install -y python"
+    - name: Remove LXD
+      apt:
+        name: "{{item}}"
+        state: absent
+      with_items:
+      - lxd
+      - lxd-client
+    - name: Install apache2
+      apt:
+        name: apache2
+    - name: Install apt-cacher
+      apt:
+        name: apt-cacher
+    - name: Configure apt-cacher
+      copy:
+        src: apt-cacher.conf
+        dest: /etc/apt-cacher/apt-cacher.conf
+        owner: root
+        group: root
+        mode: 0644
+    - name: Restart apt-cacher
+      service:
+        name: apt-cacher
+        state: restarted
+        enabled: yes
+    delegate_to: "{{container_name}}"
