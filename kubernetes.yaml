@@ -1,6 +1,8 @@
 - hosts: localhost
   gather_facts: no
   tasks:
+  - name: Bootstrap the Juju controller
+    shell: juju-2.0 bootstrap lxd kubernetes
   - name: Create the Juju model
     shell: juju-2.0 add-model kubernetes
     ignore_errors: true
@@ -27,3 +29,5 @@
           path: /sys/module/apparmor/parameters/enabled
           source: /dev/null
           type: disk
+  - name: Deploy Kubernetes
+    shell: juju-2.0 deploy -m kubernetes canonical-kubernetes
