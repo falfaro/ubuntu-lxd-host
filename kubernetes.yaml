@@ -1,53 +1,29 @@
 - hosts: localhost
   gather_facts: no
-  vars:
-  - container_name: kubernetes
   tasks:
-  - name: Ensure Kubernetes container exists
-    lxd_container:
-      name: "{{container_name}}"
-      state: started
-      source:
-        type: image
-        mode: pull
-        protocol: simplestreams
-        server: "https://cloud-images.ubuntu.com/releases"
-        alias: "17.04"
-      profiles:
-      - cache
-      - docker
-      - default
-      - nested
-      wait_for_ipv4_addresses: true
-      timeout: 600
-  - block:
-    - name: Ensure Python is available in the container
-      raw: "apt update && apt install -y python"
-    - name: Remove LXD
-      package:
-        name: "{{item}}"
-        state: absent
-        use: apt
-      with_items:
-      - lxd
-      - lxd-client
-    - name: Install squashfuse in the container
-      package:
-        name: squashfuse
-        use: apt
-    - name: Ensure conjure-up is available in the container
-      shell: "snap install conjure-up --classic"
-    - name: Deploy Kubernetes inside the container
-      shell: "conjure-up canonical-kubernetes localhost controller model"
-      become: yes
-      become_user: ubuntu
-      tags: kube
-    - name: Symlink kubecfg
-      file:
-        src: ~ubuntu/.kube/config.model
-        dest: ~ubuntu/.kube/config
-        state: link
-        owner: ubuntu
-        group: ubuntu
-      tags: kube
-    delegate_to: "{{container_name}}"
+  - name: Create the Juju model
+    shell: juju-2.0 add-model kubernetes
+    ignore_errors: true
+  - name: Ensure Juju's default LXD exists
+    lxd_profile:
+      name: juju-kubernetes
+      state: present
+      description: Juju's default LXD profile
+      config:
+        boot.autostart: "true"
+        linux.kernel_modules: ip_tables,ip6_tables,netlink_diag,nf_nat,overlay
+        raw.lxc: |
+          lxc.aa_profile=unconfined
+          lxc.mount.auto=proc:rw sys:rw
+          lxc.cap.drop=
+        security.nesting: "true"
+        security.privileged: "true"
+      devices:
+        aadisable:
+          path: /sys/module/nf_conntrack/parameters/hashsize
+          source: /dev/null
+          type: disk
+        aadisable1:
+          path: /sys/module/apparmor/parameters/enabled
+          source: /dev/null
+          type: disk
