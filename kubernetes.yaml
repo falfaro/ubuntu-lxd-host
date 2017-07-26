@@ -1,33 +1,89 @@
 - hosts: localhost
   gather_facts: no
+  vars:
+  - container_name: kubernetes
   tasks:
-  - name: Bootstrap the Juju controller
-    shell: juju-2.0 bootstrap lxd kubernetes
-  - name: Create the Juju model
-    shell: juju-2.0 add-model kubernetes
-    ignore_errors: true
-  - name: Ensure Juju's default LXD exists
-    lxd_profile:
-      name: juju-kubernetes
-      state: present
-      description: Juju's default LXD profile
-      config:
-        boot.autostart: "true"
-        linux.kernel_modules: ip_tables,ip6_tables,netlink_diag,nf_nat,overlay
-        raw.lxc: |
-          lxc.aa_profile=unconfined
-          lxc.mount.auto=proc:rw sys:rw
-          lxc.cap.drop=
-        security.nesting: "true"
-        security.privileged: "true"
-      devices:
-        aadisable:
-          path: /sys/module/nf_conntrack/parameters/hashsize
-          source: /dev/null
-          type: disk
-        aadisable1:
-          path: /sys/module/apparmor/parameters/enabled
-          source: /dev/null
-          type: disk
-  - name: Deploy Kubernetes
-    shell: juju-2.0 deploy -m kubernetes canonical-kubernetes
+  - name: Ensure container exists
+    lxd_container:
+      name: "{{container_name}}"
+      state: started
+      #Required if using conjure-up's built-in LXD.
+      #url: unix:/var/snap/conjure-up/common/lxd/unix.socket
+      source:
+        type: image
+        mode: pull
+        protocol: simplestreams
+        server: "https://cloud-images.ubuntu.com/releases"
+        alias: "17.04"
+      profiles:
+      - cache
+      - default
+      - nested
+      wait_for_ipv4_addresses: true
+      timeout: 600
+  - block:
+    - name: Ensure Python is available in the container
+      raw: "sudo apt update && sudo apt install -y python"
+    - name: Ensure LXD is installed in the container
+      become_user: root
+      apt:
+        name: "{{item}}"
+      with_items:
+      - lxd
+      - lxd-client
+      - juju
+    - name: Ensure LXD is initialized in the container
+      shell: "lxd init --network-address=0.0.0.0 --network-port=8443 --storage-backend=dir --auto"
+    - name: Ensure LXD bridge exists
+      shell: "lxc network create lxdbr0 ipv6.address=none ipv4.address=10.0.3.1/24 ipv4.nat=true"
+      ignore_errors: true
+    - name: Configure LXD default profile
+      lxd_profile:
+        name: default
+        state: present
+        description: Default LXD profile
+        config:
+          boot.autostart: "true"
+          user.user-data: |
+            #cloud-config
+            apt:
+              proxy: http://cache:3142
+        devices:
+          eth0:
+            nictype: bridged
+            parent: lxdbr0
+            type: nic
+          root:
+            path: /
+            pool: default
+            type: disk
+    - name: Bootstrap the Juju controller in the container
+      shell: juju-2.0 bootstrap lxd kubernetes -d kubernetes
+    - name: Ensure Juju's default LXD exists in the container
+      lxd_profile:
+        name: juju-kubernetes
+        state: present
+        description: Juju's default LXD profile
+        config:
+          boot.autostart: "true"
+          linux.kernel_modules: ip_tables,ip6_tables,netlink_diag,nf_nat,overlay
+          raw.lxc: |
+            lxc.aa_profile=unconfined
+            lxc.mount.auto=proc:rw sys:rw
+            lxc.cap.drop=
+          security.nesting: "true"
+          security.privileged: "true"
+        devices:
+          aadisable:
+            path: /sys/module/nf_conntrack/parameters/hashsize
+            source: /dev/null
+            type: disk
+          aadisable1:
+            path: /sys/module/apparmor/parameters/enabled
+            source: /dev/null
+            type: disk
+    - name: Deploy Canonical Kubernetes in the container
+      shell: juju-2.0 deploy -m kubernetes canonical-kubernetes
+    become_user: ubuntu
+    become: true
+    delegate_to: "{{container_name}}"
