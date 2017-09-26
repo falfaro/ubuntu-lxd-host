@@ -1,0 +1,5 @@
+default-series: zesty
+no-proxy: localhost
+apt-http-proxy: http://10.229.92.187:3142
+apt-https-proxy: http://10.229.92.187:3142
+apt-ftp-proxy: http://10.229.92.187:3142

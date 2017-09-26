@@ -1,0 +1,126 @@
+- hosts: localhost
+  gather_facts: no
+  vars:
+  - container_name: openstack
+  tasks:
+  - name: "Ensure {{container_name}} LXD profile exists"
+    lxd_profile:
+      name: "{{container_name}}"
+      state: present
+      description: LXD container for nesting OpenStack/LXD
+      config:
+        security.privileged: "true"
+        security.nesting: "true"
+        linux.kernel_modules: "iptable_nat,ip6table_nat,ebtables,openvswitch,nbd"
+        raw.lxc: |
+          lxc.aa_profile=unconfined
+          lxc.cap.drop=
+      devices:
+        mem:
+          path: /dev/mem
+          type: unix-char
+    tags: lxd
+  - name: "Ensure {{container_name}} container exists"
+    lxd_container:
+      name: "{{container_name}}"
+      state: started
+      #Required if using conjure-up's built-in LXD.
+      #url: unix:/var/snap/conjure-up/common/lxd/unix.socket
+      source:
+        type: image
+        mode: pull
+        protocol: simplestreams
+        server: "https://cloud-images.ubuntu.com/releases"
+        alias: "17.04"
+      profiles:
+      - "{{container_name}}"
+      - cache
+      - default
+      wait_for_ipv4_addresses: true
+      timeout: 600
+    tags: lxd
+  - command: lxc file push config.yaml "{{container_name}}/home/ubuntu/config.yaml"
+  - block:
+    - name: Ensure Python is available in the container
+      raw: "sudo apt update && sudo apt install -y python"
+    - name: Ensure LXD is installed in the container
+      become_user: root
+      apt:
+        name: "{{item}}"
+      with_items:
+      - lxd
+      - lxd-client
+      - juju
+      - squashfuse
+    - name: Symlinks
+      become_user: root
+      file:
+        src: /bin/true
+        dest: /usr/local/bin/udevadm
+        state: link
+    - name: Ensure LXD is initialized in the container
+      shell: "lxd init --network-address=0.0.0.0 --network-port=8443 --storage-backend=dir --auto"
+    - name: Ensure LXD bridge exists
+      shell: "lxc network create lxdbr0 ipv6.address=none ipv4.address=10.0.3.1/24 ipv4.nat=true"
+      ignore_errors: true
+    - name: Configure LXD default profile
+      lxd_profile:
+        name: default
+        state: present
+        description: Default LXD profile
+        config:
+          boot.autostart: "true"
+        devices:
+          eth0:
+            nictype: bridged
+            parent: lxdbr0
+            type: nic
+          root:
+            path: /
+            pool: default
+            type: disk
+    - name: Create conjureup0 LXD network
+      shell: lxc network create conjureup0 ipv6.address=none ipv4.address=10.101.0.1/24 ipv4.nat=true
+    - name: Bootstrap the Juju controller in the container
+      shell: juju-2.0 bootstrap lxd {{container_name}} -d {{container_name}} --model-default=config.yaml
+    - name: Ensure Juju's default LXD profile exists in the container
+      lxd_profile:
+        name: "juju-{{container_name}}"
+        state: present
+        description: Juju's default LXD profile
+        config:
+          boot.autostart: "true"
+          security.nesting: "true"
+          security.privileged: "true"
+          linux.kernel_modules: openvswitch,nbd,ip_tables,ip6_tables,netlink_diag,nf_nat,overlay
+          raw.lxc: |
+            lxc.aa_profile=unconfined
+            lxc.mount.auto=proc:rw sys:rw
+            lxc.cap.drop=
+        devices:
+          eth0:
+            nictype: bridged
+            parent: lxdbr0
+            type: nic
+          eth1:
+            nictype: bridged
+            parent: conjureup0
+            type: nic
+          root:
+            path: /
+            pool: default
+            type: disk
+          mem:
+            path: /dev/mem
+            type: unix-char
+          aadisable:
+            path: /sys/module/nf_conntrack/parameters/hashsize
+            source: /dev/null
+            type: disk
+          aadisable1:
+            path: /sys/module/apparmor/parameters/enabled
+            source: /dev/null
+            type: disk
+    become_user: ubuntu
+    become: true
+    delegate_to: "{{container_name}}"

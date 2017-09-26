@@ -71,6 +71,25 @@
     tags:
     - cache
     - lxd_profiles
+  - name: Ensure openstack LXD profile exists
+    lxd_profile:
+      name: openstack
+      state: present
+      description: LXD container for nesting OpenStack/LXD
+      config:
+        security.privileged: "true"
+        security.nesting: "true"
+        linux.kernel_modules: "iptable_nat,ip6table_nat,ebtables,openvswitch,nbd"
+        raw.lxc: |
+          lxc.aa_profile=unconfined
+          lxc.cap.drop=
+      devices:
+        mem:
+          path: /dev/mem
+          type: unix-char
+    tags:
+    - lxd_profiles
+    - openstack
   - name: Ensure nested LXD profile exists
     lxd_profile:
       name: nested
@@ -84,6 +103,34 @@
           lxc.aa_profile=unconfined
           lxc.mount.auto=proc:rw sys:rw
           lxc.cap.drop=
+      devices:
+        mem:
+          path: /dev/mem
+          type: unix-char
+        aadisable:
+          path: /sys/module/nf_conntrack/parameters/hashsize
+          source: /dev/null
+          type: disk
+        aadisable1:
+          path: /sys/module/apparmor/parameters/enabled
+          source: /dev/null
+          type: disk
+    tags:
+    - lxd_profiles
+  - name: Ensure kubernetes LXD profile exists
+    lxd_profile:
+      name: kubernetes
+      state: present
+      description: LXD container for Kubernetes
+      config:
+        linux.kernel_modules: bridge,br_netfilter,ip_tables,ip6_tables,ip_vs,netlink_diag,nf_nat,overlay,xt_conntrack
+        raw.lxc: |-
+          lxc.aa_profile = unconfined
+          lxc.cgroup.devices.allow = a
+          lxc.mount.auto=proc:rw sys:rw
+          lxc.cap.drop =
+        security.nesting: "true"
+        security.privileged: "true"
       devices:
         mem:
           path: /dev/mem

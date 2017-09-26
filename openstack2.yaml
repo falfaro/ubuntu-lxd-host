@@ -1,0 +1,46 @@
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - name: Create openstack LXD network
+    shell: lxc network create openstack ipv6.address=none ipv4.address=10.101.0.1/24 ipv4.nat=true
+  - name: Bootstrap the Juju controller in the container
+    shell: juju-2.0 bootstrap lxd openstack -d openstack --model-default=config.yaml
+  - name: Ensure openstack LXD profile exists
+    lxd_profile:
+      name: juju-openstack
+      state: present
+      description: OpenStack LXD profile
+      config:
+        boot.autostart: "true"
+        security.nesting: "true"
+        security.privileged: "true"
+        linux.kernel_modules: openvswitch,nbd,ip_tables,ip6_tables,netlink_diag,nf_nat,overlay
+        raw.lxc: |
+          lxc.aa_profile=unconfined
+          lxc.mount.auto=proc:rw sys:rw
+          lxc.cap.drop=
+      devices:
+        eth0:
+          nictype: bridged
+          parent: lxdbr0
+          type: nic
+        eth1:
+          nictype: bridged
+          parent: openstack
+          type: nic
+        root:
+          path: /
+          pool: default
+          type: disk
+        mem:
+          path: /dev/mem
+          type: unix-char
+        aadisable:
+          path: /sys/module/nf_conntrack/parameters/hashsize
+          source: /dev/null
+          type: disk
+        aadisable1:
+          path: /sys/module/apparmor/parameters/enabled
+          source: /dev/null
+          type: disk
+    tags: lxd_profile
