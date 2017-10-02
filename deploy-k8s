@@ -1,0 +1,1 @@
+conjure-up --apt-proxy http://cache:3142 --apt-https-proxy http://cache:3142 ./canonical-kubernetes localhost lxd k8s
