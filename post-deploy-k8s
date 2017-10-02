@@ -1,0 +1,4 @@
+#From: https://jujucharms.com/canonical-kubernetes/
+juju expose kubernetes-worker
+juju config kubernetes-worker ingress=true
+juju run-action kubernetes-worker/0 microbot replicas=3
